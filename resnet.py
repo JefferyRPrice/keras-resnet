@@ -14,14 +14,20 @@ from keras.layers.convolutional import (
 from keras.layers.normalization import BatchNormalization
 from keras import backend as K
 
+# Helper to build a BN -> relu block
+def _bn_relu():
+    def f(input):
+        norm = BatchNormalization(mode=0, axis=CHANNEL_AXIS)(input)
+        return Activation("relu")(norm)
+
+    return f
 
 # Helper to build a conv -> BN -> relu block
 def _conv_bn_relu(nb_filter, nb_row, nb_col, subsample=(1, 1)):
     def f(input):
         conv = Convolution2D(nb_filter=nb_filter, nb_row=nb_row, nb_col=nb_col, subsample=subsample,
                              init="he_normal", border_mode="same")(input)
-        norm = BatchNormalization(mode=0, axis=CHANNEL_AXIS)(conv)
-        return Activation("relu")(norm)
+        return _bn_relu(conv)
 
     return f
 
@@ -30,8 +36,7 @@ def _conv_bn_relu(nb_filter, nb_row, nb_col, subsample=(1, 1)):
 # This is an improved scheme proposed in http://arxiv.org/pdf/1603.05027v2.pdf
 def _bn_relu_conv(nb_filter, nb_row, nb_col, subsample=(1, 1)):
     def f(input):
-        norm = BatchNormalization(mode=0, axis=CHANNEL_AXIS)(input)
-        activation = Activation("relu")(norm)
+        activation = _bn_relu(input)
         return Convolution2D(nb_filter=nb_filter, nb_row=nb_row, nb_col=nb_col, subsample=subsample,
                              init="he_normal", border_mode="same")(activation)
 
