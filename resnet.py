@@ -12,6 +12,7 @@ from keras.layers.convolutional import (
     AveragePooling2D
 )
 from keras.layers.normalization import BatchNormalization
+from keras.regularizers import l2
 from keras import backend as K
 
 # Helper to build a BN -> relu block
@@ -24,7 +25,7 @@ def _bn_relu(input):
 def _conv_bn_relu(nb_filter, nb_row, nb_col, subsample=(1, 1)):
     def f(input):
         conv = Convolution2D(nb_filter=nb_filter, nb_row=nb_row, nb_col=nb_col, subsample=subsample,
-                             init="he_normal", border_mode="same")(input)
+                             init="he_normal", border_mode="same", W_regularizer=l2(0.0001))(input)
         return _bn_relu(conv)
 
     return f
@@ -36,7 +37,7 @@ def _bn_relu_conv(nb_filter, nb_row, nb_col, subsample=(1, 1)):
     def f(input):
         activation = _bn_relu(input)
         return Convolution2D(nb_filter=nb_filter, nb_row=nb_row, nb_col=nb_col, subsample=subsample,
-                             init="he_normal", border_mode="same")(activation)
+                             init="he_normal", border_mode="same", W_regularizer=l2(0.0001))(activation)
 
     return f
 
@@ -56,7 +57,8 @@ def _shortcut(input, residual):
         shortcut = Convolution2D(nb_filter=residual._keras_shape[CHANNEL_AXIS],
                                  nb_row=1, nb_col=1,
                                  subsample=(stride_width, stride_height),
-                                 init="he_normal", border_mode="valid")(input)
+                                 init="he_normal", border_mode="valid",
+                                 W_regularizer=l2(0.0001))(input)
 
     return merge([shortcut, residual], mode="sum")
 
@@ -89,7 +91,8 @@ def basic_block(nb_filters, init_subsample=(1, 1), is_first_block_of_first_layer
             conv1 = Convolution2D(nb_filter=nb_filters,
                                  nb_row=3, nb_col=3,
                                  subsample=init_subsample,
-                                 init="he_normal", border_mode="same")(input)
+                                 init="he_normal", border_mode="same",
+                                 W_regularizer=l2(0.0001))(input)
         else:
             conv1 = _bn_relu_conv(nb_filters, 3, 3, subsample=init_subsample)(input)
 
@@ -110,7 +113,8 @@ def bottleneck(nb_filters, init_subsample=(1, 1), is_first_block_of_first_layer=
             conv_1_1 = Convolution2D(nb_filter=nb_filters,
                                  nb_row=1, nb_col=1,
                                  subsample=init_subsample,
-                                 init="he_normal", border_mode="same")(input)
+                                 init="he_normal", border_mode="same",
+                                 W_regularizer=l2(0.0001))(input)
         else:
             conv_1_1 = _bn_relu_conv(nb_filters, 1, 1, subsample=init_subsample)(input)
 
