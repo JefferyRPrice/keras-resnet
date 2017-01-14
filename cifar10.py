@@ -6,8 +6,24 @@ from __future__ import print_function
 from keras.datasets import cifar10
 from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import np_utils
+from keras.callbacks import LearningRateScheduler
 
 import resnet
+
+def _lr_schedule(epoch):
+    if epoch<75:
+        print('')
+        print('lr = 1.e-3')
+        return 1.e-3
+    elif epoch<150:
+        print('')
+        print('lr = 1.e-4')
+        return 1.e-4
+    else:
+        print('')
+        print('lr = 1.e-5')
+        return 1.e-5
+
 
 batch_size = 32
 nb_classes = 10
@@ -33,7 +49,7 @@ model = resnet.ResnetBuilder.build_resnet_18((img_channels, img_rows, img_cols),
 
 # Let's train the model using RMSprop
 model.compile(loss='categorical_crossentropy',
-              optimizer='rmsprop',
+              optimizer='adam',
               metrics=['accuracy'])
 
 X_train = X_train.astype('float32')
@@ -47,7 +63,8 @@ if not data_augmentation:
               batch_size=batch_size,
               nb_epoch=nb_epoch,
               validation_data=(X_test, Y_test),
-              shuffle=True)
+              shuffle=True,
+              callbacks = [LearningRateScheduler(_lr_schedule)])
 else:
     print('Using real-time data augmentation.')
     # This will do preprocessing and realtime data augmentation:
@@ -71,4 +88,5 @@ else:
     model.fit_generator(datagen.flow(X_train, Y_train, batch_size=batch_size),
                         samples_per_epoch=X_train.shape[0],
                         validation_data=(X_test, Y_test),
-                        nb_epoch=nb_epoch, verbose=2, max_q_size=1000)
+                        nb_epoch=nb_epoch, verbose=1,
+                        callbacks = [LearningRateScheduler(_lr_schedule)])
