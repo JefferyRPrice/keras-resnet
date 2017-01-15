@@ -132,7 +132,7 @@ def bottleneck(nb_filter, init_subsample=(1, 1), is_first_block_of_first_layer=F
                                  init="he_normal", border_mode="same",
                                  W_regularizer=l2(0.0001))(input)
         else:
-            conv_1_1 = _bn_relu_conv(nb_filter, 1, 1, subsample=init_subsample)(input)
+            conv_1_1 = _bn_relu_conv(nb_filter=nb_filter, nb_row=1, nb_col=1, subsample=init_subsample)(input)
 
         conv_3_3 = _bn_relu_conv(nb_filter=nb_filter, nb_row=3, nb_col=3)(conv_1_1)
         residual = _bn_relu_conv(nb_filter=nb_filter * 4, nb_row=1, nb_col=1)(conv_3_3)
