@@ -83,12 +83,12 @@ def _shortcut(input, residual):
 def _residual_block(block_function, nb_filter, repetitions, is_first_layer=False):
     def f(input):
         for i in range(repetitions):
-            init_subsample = (1, 1)
+            stage_subsample = (1, 1)
             if i == 0 and not is_first_layer:
-                init_subsample = (2, 2)
+                stage_subsample = (2, 2)
             input = block_function(
                     nb_filter=nb_filter,
-                    init_subsample=init_subsample,
+                    stage_subsample=stage_subsample,
                     is_first_block_of_first_layer=(is_first_layer and i==0)
                 )(input)
         return input
@@ -99,18 +99,18 @@ def _residual_block(block_function, nb_filter, repetitions, is_first_layer=False
 # Basic 3 X 3 convolution blocks.
 # Use for resnet with layers <= 34
 # Follows improved proposed scheme in http://arxiv.org/pdf/1603.05027v2.pdf
-def basic_block(nb_filter, init_subsample=(1, 1), is_first_block_of_first_layer=False):
+def basic_block(nb_filter, stage_subsample=(1, 1), is_first_block_of_first_layer=False):
     def f(input):
 
         if is_first_block_of_first_layer:
             # don't repeat bn->relu since we just did bn->relu->maxpool
             conv1 = Convolution2D(nb_filter=nb_filter,
                                  nb_row=3, nb_col=3,
-                                 subsample=init_subsample,
+                                 subsample=stage_subsample,
                                  init="he_normal", border_mode="same",
                                  W_regularizer=l2(0.0001))(input)
         else:
-            conv1 = _bn_relu_conv(nb_filter=nb_filter, nb_row=3, nb_col=3, subsample=init_subsample)(input)
+            conv1 = _bn_relu_conv(nb_filter=nb_filter, nb_row=3, nb_col=3, subsample=stage_subsample)(input)
 
         residual = _bn_relu_conv(nb_filter=nb_filter, nb_row=3, nb_col=3)(conv1)
         return _shortcut(input, residual)
@@ -121,20 +121,20 @@ def basic_block(nb_filter, init_subsample=(1, 1), is_first_block_of_first_layer=
 # Bottleneck architecture for > 34 layer resnet.
 # Follows improved proposed scheme in http://arxiv.org/pdf/1603.05027v2.pdf
 # Returns a final conv layer of nb_filter * 4
-def bottleneck(nb_filter, init_subsample=(1, 1), is_first_block_of_first_layer=False):
+def bottleneck(nb_filter, stage_subsample=(1, 1), is_first_block_of_first_layer=False):
     def f(input):
 
         if is_first_block_of_first_layer:
             # don't repeat bn->relu since we just did bn->relu->maxpool
             conv_1_1 = Convolution2D(nb_filter=nb_filter,
                                  nb_row=1, nb_col=1,
-                                 subsample=init_subsample,
-                                 init="he_normal", border_mode="same",
+                                 init="he_normal",
                                  W_regularizer=l2(0.0001))(input)
         else:
-            conv_1_1 = _bn_relu_conv(nb_filter=nb_filter, nb_row=1, nb_col=1, subsample=init_subsample)(input)
+            conv_1_1 = _bn_relu_conv(nb_filter=nb_filter, nb_row=1, nb_col=1)(input)
 
-        conv_3_3 = _bn_relu_conv(nb_filter=nb_filter, nb_row=3, nb_col=3)(conv_1_1)
+        conv_3_3 = _bn_relu_conv(nb_filter=nb_filter, nb_row=3, nb_col=3, 
+            subsample=stage_subsample, border_mode='same')(conv_1_1)
         residual = _bn_relu_conv(nb_filter=nb_filter * 4, nb_row=1, nb_col=1)(conv_3_3)
         return _shortcut(input, residual)
 
